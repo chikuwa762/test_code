@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ちゃあくん専用 メルカリ利益計算ツール</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>メルカリ/Yahoo/ラクマ 利益計算ツール</title>
   <style>
     * {
       box-sizing: border-box;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
     }
 
     body {
@@ -21,7 +22,7 @@
     .card {
       background: #ffffff;
       width: 100%;
-      max-width: 480px;
+      max-width: 520px;
       padding: 20px 18px 24px;
       border-radius: 16px;
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
@@ -57,13 +58,14 @@
       align-items: center;
     }
 
-    input[type="number"] {
+    input[type="number"],
+    select {
       width: 100%;
       padding: 8px 10px;
       border-radius: 10px;
       border: 1px solid #d4d4d8;
       font-size: 0.9rem;
-      -moz-appearance: textfield;
+      background: #ffffff;
     }
 
     input[type="number"]::-webkit-outer-spin-button,
@@ -99,38 +101,66 @@
       opacity: 0.9;
     }
 
-    .results {
+    .results-wrapper {
       margin-top: 18px;
-      padding-top: 12px;
       border-top: 1px dashed #e5e7eb;
-      font-size: 0.9rem;
+      padding-top: 12px;
     }
 
-    .result-row {
+    .shipping-summary {
+      font-size: 0.78rem;
+      color: #6b7280;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .market-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .market-card {
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: #eff6ff;
+      font-size: 0.85rem;
+    }
+
+    .market-header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 6px;
+      align-items: baseline;
+      margin-bottom: 4px;
     }
 
-    .result-label {
-      color: #6b7280;
+    .market-name {
+      font-weight: 700;
+      font-size: 0.95rem;
     }
 
-    .result-value {
-      font-weight: 600;
-    }
-
-    .result-main {
-      font-size: 1.1rem;
-      margin-top: 6px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      background: #eff6ff;
-    }
-
-    .result-main .result-value {
+    .profit-value {
+      font-weight: 700;
+      font-size: 1rem;
       color: #1d4ed8;
-      font-size: 1.1rem;
+    }
+
+    .profit-negative {
+      color: #b91c1c;
+    }
+
+    .market-rows {
+      margin-top: 4px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .label {
+      color: #6b7280;
     }
 
     .footer-note {
@@ -149,24 +179,26 @@
         color: #e5e7eb;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
       }
-      input[type="number"] {
+      input[type="number"],
+      select {
         background: #020617;
         color: #e5e7eb;
         border-color: #4b5563;
       }
       .subtitle,
-      .result-label,
+      .label,
       .suffix,
+      .shipping-summary,
       .footer-note {
         color: #9ca3af;
       }
-      .results {
+      .results-wrapper {
         border-top-color: #374151;
       }
-      .result-main {
+      .market-card {
         background: #1d4ed8;
       }
-      .result-main .result-value {
+      .profit-value {
         color: #f9fafb;
       }
     }
@@ -174,13 +206,19 @@
 </head>
 <body>
   <div class="card">
-    <h1>ちゃあくん専用 メルカリ利益計算</h1>
-    <div class="subtitle">株式会社 ヨシ</div>
+    <h1>フリマ利益計算</h1>
+    <div class="subtitle">販売価格・原価・経費と発送方法を入れるだけ</div>
 
+    <!-- ▼▼▼ 入力欄 ▼▼▼ -->
     <div class="field">
       <label for="price">販売価格</label>
       <div class="field-row">
-        <input type="number" id="price" inputmode="decimal" placeholder="例: 3000">
+        <input
+          type="number"
+          id="price"
+          inputmode="decimal"
+          placeholder="例: 3000"
+        />
         <span class="suffix">円</span>
       </div>
     </div>
@@ -188,15 +226,12 @@
     <div class="field">
       <label for="cost">仕入れ値 / 原価</label>
       <div class="field-row">
-        <input type="number" id="cost" inputmode="decimal" placeholder="例: 1500">
-        <span class="suffix">円</span>
-      </div>
-    </div>
-
-    <div class="field">
-      <label for="shipping">送料（自分負担分）</label>
-      <div class="field-row">
-        <input type="number" id="shipping" inputmode="decimal" placeholder="例: 450">
+        <input
+          type="number"
+          id="cost"
+          inputmode="decimal"
+          placeholder="例: 1500"
+        />
         <span class="suffix">円</span>
       </div>
     </div>
@@ -204,49 +239,105 @@
     <div class="field">
       <label for="other">その他経費（梱包材など）</label>
       <div class="field-row">
-        <input type="number" id="other" inputmode="decimal" placeholder="例: 100">
+        <input
+          type="number"
+          id="other"
+          inputmode="decimal"
+          placeholder="例: 100"
+        />
         <span class="suffix">円</span>
       </div>
     </div>
 
     <div class="field">
-      <label for="feeRate">販売手数料</label>
-      <div class="field-row">
-        <input type="number" id="feeRate" inputmode="decimal" value="10">
-        <span class="suffix">%</span>
-      </div>
+      <label for="shippingMethod">発送方法</label>
+      <select id="shippingMethod"></select>
     </div>
 
     <button id="calcBtn">利益を計算する</button>
 
-    <div class="results">
-      <div class="result-row result-main">
-        <span class="result-label">利益</span>
-        <span class="result-value" id="profitText">- 円</span>
+    <!-- ▼▼▼ 結果表示 ▼▼▼ -->
+    <div class="results-wrapper">
+      <div class="shipping-summary" id="shippingSummary">
+        発送方法とサイト別送料をここに表示します。
       </div>
 
-      <div class="result-row">
-        <span class="result-label">売上からの手数料</span>
-        <span class="result-value" id="feeAmountText">- 円</span>
-      </div>
+      <div class="market-list" id="marketResults"></div>
 
-      <div class="result-row">
-        <span class="result-label">振込前の受取額（売上−手数料）</span>
-        <span class="result-value" id="netSalesText">- 円</span>
+      <div class="footer-note">
+        ※手数料率・送料はフリマアプリの最新仕様に合わせて、<br />　
+        ファイル上部の設定を自分で修正してください。
       </div>
-
-      <div class="result-row">
-        <span class="result-label">利益率（利益 ÷ 売上）</span>
-        <span class="result-value" id="marginText">- %</span>
-      </div>
-    </div>
-
-    <div class="footer-note">
-      ※手数料率はアプリの仕様に合わせて変更してください
     </div>
   </div>
 
   <script>
+    /**********************************************
+     * ① サイト別の設定（ここが「手数料データベース」）
+     **********************************************/
+    // 手数料率などは自分の環境に合わせて書き換えてください
+    // （下の数字はサンプルです。実際のアプリの規約を必ず確認してください）
+    const MARKETPLACES = {
+      mercari: {
+        key: "mercari",
+        label: "メルカリ",
+        feeRate: 10.0, // 例: 10%
+      },
+      yahoo: {
+        key: "yahoo",
+        label: "ヤフオク! / ペイペイフリマ",
+        feeRate: 10.0, // 例: 10%
+      },
+      rakuma: {
+        key: "rakuma",
+        label: "ラクマ",
+        feeRate: 6.0, // 例: 6%
+      },
+    };
+
+    /**********************************************
+     * ② 発送方法データベース
+     *    - cost.○○ に、上の MARKETPLACES の key 名で送料を書く
+     **********************************************/
+    const SHIPPING_METHODS = [
+      {
+        id: "yp_post",
+        label: "ゆうパケットポスト",
+        cost: {
+          mercari: 215, // サンプル値
+          yahoo: 230, // サンプル値
+          rakuma: 200, // サンプル値
+        },
+      },
+      {
+        id: "yp_post_mini",
+        label: "ゆうパケットポスト mini",
+        cost: {
+          mercari: 200,
+          yahoo: 210,
+          rakuma: 190,
+        },
+      },
+      {
+        id: "yp_post_plus",
+        label: "ゆうパケットポスト プラス",
+        cost: {
+          mercari: 450,
+          yahoo: 470,
+          rakuma: 430,
+        },
+      },
+      // ここにどんどん追加してOK
+      // {
+      //   id: "yamato_neko",
+      //   label: "ネコポス",
+      //   cost: { mercari: 210, yahoo: 230, rakuma: 200 },
+      // },
+    ];
+
+    /**********************************************
+     * ③ 共通関数
+     **********************************************/
     function toNumber(value) {
       const n = parseFloat(value);
       return isNaN(n) ? 0 : n;
@@ -260,47 +351,130 @@
       return n.toFixed(1);
     }
 
+    function getSelectedShippingMethod() {
+      const id = document.getElementById("shippingMethod").value;
+      return SHIPPING_METHODS.find((m) => m.id === id) || null;
+    }
+
+    /**********************************************
+     * ④ 結果計算・表示
+     **********************************************/
     function calculate() {
       const price = toNumber(document.getElementById("price").value);
       const cost = toNumber(document.getElementById("cost").value);
-      const shipping = toNumber(document.getElementById("shipping").value);
       const other = toNumber(document.getElementById("other").value);
-      const feeRate = toNumber(document.getElementById("feeRate").value);
+      const shippingMethod = getSelectedShippingMethod();
 
-      if (price <= 0) {
-        document.getElementById("profitText").textContent = "- 円";
-        document.getElementById("feeAmountText").textContent = "- 円";
-        document.getElementById("netSalesText").textContent = "- 円";
-        document.getElementById("marginText").textContent = "- %";
+      const marketResultsEl = document.getElementById("marketResults");
+
+      if (price <= 0 || !shippingMethod) {
+        marketResultsEl.innerHTML =
+          '<div style="font-size:0.8rem;color:#9ca3af;">販売価格と発送方法を入力してください。</div>';
         return;
       }
 
-      const feeAmount = price * (feeRate / 100);
-      const netSales = price - feeAmount; // 手数料を引いた売上
-      const profit = netSales - cost - shipping - other;
-      const margin = (profit / price) * 100;
+      let html = "";
 
-      document.getElementById("feeAmountText").textContent =
-        formatYen(feeAmount) + " 円";
-      document.getElementById("netSalesText").textContent =
-        formatYen(netSales) + " 円";
-      document.getElementById("profitText").textContent =
-        formatYen(profit) + " 円";
-      document.getElementById("marginText").textContent =
-        formatPercent(margin) + " %";
+      Object.values(MARKETPLACES).forEach((market) => {
+        const feeAmount = price * (market.feeRate / 100);
+        const shippingCost = shippingMethod.cost[market.key] ?? 0;
+        const totalCost = cost + other + shippingCost;
+        const profit = price - feeAmount - totalCost;
+        const margin = (profit / price) * 100;
+
+        const profitClass = profit < 0 ? "profit-value profit-negative" : "profit-value";
+
+        html += `
+          <div class="market-card">
+            <div class="market-header">
+              <div class="market-name">${market.label}</div>
+              <div class="${profitClass}">
+                利益：${formatYen(profit)} 円
+              </div>
+            </div>
+            <div class="market-rows">
+              <div class="row">
+                <span class="label">販売価格</span>
+                <span>${formatYen(price)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">販売手数料（${formatPercent(
+                  market.feeRate
+                )}%）</span>
+                <span>${formatYen(feeAmount)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">送料（${shippingMethod.label}）</span>
+                <span>${formatYen(shippingCost)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">原価＋その他経費</span>
+                <span>${formatYen(cost + other)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">利益率</span>
+                <span>${formatPercent(margin)} %</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      marketResultsEl.innerHTML = html;
+      updateShippingSummary();
+    }
+
+    function updateShippingSummary() {
+      const shippingMethod = getSelectedShippingMethod();
+      const el = document.getElementById("shippingSummary");
+      if (!shippingMethod) {
+        el.textContent = "発送方法とサイト別送料をここに表示します。";
+        return;
+      }
+
+      const lines = Object.values(MARKETPLACES).map((m) => {
+        const cost = shippingMethod.cost[m.key];
+        if (typeof cost !== "number") return `${m.label}: ー 円`;
+        return `${m.label}: ${formatYen(cost)} 円`;
+      });
+
+      el.textContent = `「${shippingMethod.label}」の送料：` + lines.join(" / ");
+    }
+
+    /**********************************************
+     * ⑤ 初期化（プルダウンに発送方法を入れる）
+     **********************************************/
+    function init() {
+      const shippingSelect = document.getElementById("shippingMethod");
+
+      SHIPPING_METHODS.forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.label;
+        shippingSelect.appendChild(opt);
+      });
+
+      // デフォルトで先頭を選択
+      if (SHIPPING_METHODS.length > 0) {
+        shippingSelect.value = SHIPPING_METHODS[0].id;
+      }
+
+      updateShippingSummary();
+      calculate();
     }
 
     document.getElementById("calcBtn").addEventListener("click", calculate);
-
-    // 入力を変えたら自動で再計算（好きなら消してOK）
-    ["price", "cost", "shipping", "other", "feeRate"].forEach(id => {
-      document.getElementById(id).addEventListener("input", () => {
+    ["price", "cost", "other"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", calculate);
+    });
+    document
+      .getElementById("shippingMethod")
+      .addEventListener("change", () => {
+        updateShippingSummary();
         calculate();
       });
-    });
+
+    init();
   </script>
 </body>
 </html>
-
-
-
