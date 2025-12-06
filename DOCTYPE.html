@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>メルカリ/Yahoo/ラクマ 利益計算ツール</title>
+  <title>フリマ利益計算ツール（保存付き）</title>
   <style>
     * {
       box-sizing: border-box;
@@ -59,6 +59,7 @@
     }
 
     input[type="number"],
+    input[type="text"],
     select {
       width: 100%;
       padding: 8px 10px;
@@ -80,19 +81,31 @@
       white-space: nowrap;
     }
 
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
     button {
       width: 100%;
-      margin-top: 8px;
       padding: 10px;
       border-radius: 999px;
       border: none;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
       background: #2563eb;
       color: white;
       box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
       transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
+      white-space: nowrap;
+    }
+
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+      box-shadow: 0 4px 10px rgba(148, 163, 184, 0.6);
     }
 
     button:active {
@@ -163,6 +176,35 @@
       color: #6b7280;
     }
 
+    .saved-block {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px dashed #e5e7eb;
+      font-size: 0.8rem;
+    }
+
+    .saved-block-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .saved-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .saved-row select {
+      flex: 1;
+    }
+
+    .saved-row button {
+      width: auto;
+      padding-inline: 12px;
+      font-size: 0.8rem;
+      box-shadow: none;
+    }
+
     .footer-note {
       margin-top: 10px;
       font-size: 0.75rem;
@@ -180,6 +222,7 @@
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
       }
       input[type="number"],
+      input[type="text"],
       select {
         background: #020617;
         color: #e5e7eb;
@@ -192,7 +235,8 @@
       .footer-note {
         color: #9ca3af;
       }
-      .results-wrapper {
+      .results-wrapper,
+      .saved-block {
         border-top-color: #374151;
       }
       .market-card {
@@ -201,15 +245,28 @@
       .profit-value {
         color: #f9fafb;
       }
+      button.secondary {
+        background: #1f2937;
+        color: #e5e7eb;
+      }
     }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>フリマ利益計算</h1>
-    <div class="subtitle">販売価格・原価・経費と発送方法を入れるだけ</div>
+    <div class="subtitle">商品名をつけて保存・再利用できます</div>
 
     <!-- ▼▼▼ 入力欄 ▼▼▼ -->
+    <div class="field">
+      <label for="itemName">商品名</label>
+      <input
+        type="text"
+        id="itemName"
+        placeholder="例: Tシャツ 白 Lサイズ"
+      />
+    </div>
+
     <div class="field">
       <label for="price">販売価格</label>
       <div class="field-row">
@@ -254,7 +311,10 @@
       <select id="shippingMethod"></select>
     </div>
 
-    <button id="calcBtn">利益を計算する</button>
+    <div class="btn-row">
+      <button id="calcBtn">利益を計算</button>
+      <button id="saveBtn" class="secondary">現在の内容を保存</button>
+    </div>
 
     <!-- ▼▼▼ 結果表示 ▼▼▼ -->
     <div class="results-wrapper">
@@ -263,20 +323,30 @@
       </div>
 
       <div class="market-list" id="marketResults"></div>
+    </div>
 
-      <div class="footer-note">
-        ※手数料率・送料はフリマアプリの最新仕様に合わせて、<br />　
-        ファイル上部の設定を自分で修正してください。
+    <!-- ▼▼▼ 保存済みデータ ▼▼▼ -->
+    <div class="saved-block">
+      <div class="saved-block-title">保存した商品</div>
+      <div class="saved-row">
+        <select id="savedItemsSelect">
+          <option value="">（未選択）</option>
+        </select>
+        <button id="loadBtn" class="secondary">読み込み</button>
+        <button id="deleteBtn" class="secondary">削除</button>
       </div>
+    </div>
+
+    <div class="footer-note">
+      ※データはブラウザ内（localStorage）に保存されます。<br />
+      　別の端末・別ブラウザでは共有されません。
     </div>
   </div>
 
   <script>
     /**********************************************
-     * ① サイト別の設定（ここが「手数料データベース」）
+     * ① サイト別の設定（手数料データベース）
      **********************************************/
-    // 手数料率などは自分の環境に合わせて書き換えてください
-    // （下の数字はサンプルです。実際のアプリの規約を必ず確認してください）
     const MARKETPLACES = {
       mercari: {
         key: "mercari",
@@ -297,16 +367,15 @@
 
     /**********************************************
      * ② 発送方法データベース
-     *    - cost.○○ に、上の MARKETPLACES の key 名で送料を書く
      **********************************************/
     const SHIPPING_METHODS = [
       {
         id: "yp_post",
         label: "ゆうパケットポスト",
         cost: {
-          mercari: 215, // サンプル値
-          yahoo: 230, // サンプル値
-          rakuma: 200, // サンプル値
+          mercari: 215,
+          yahoo: 230,
+          rakuma: 200,
         },
       },
       {
@@ -327,16 +396,33 @@
           rakuma: 430,
         },
       },
-      // ここにどんどん追加してOK
-      // {
-      //   id: "yamato_neko",
-      //   label: "ネコポス",
-      //   cost: { mercari: 210, yahoo: 230, rakuma: 200 },
-      // },
+      // ここに追加してOK
     ];
 
     /**********************************************
-     * ③ 共通関数
+     * ③ localStorage 設定
+     **********************************************/
+    const STORAGE_KEY = "freemarketCalcSavedItems_v1";
+
+    function loadSavedItems() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed;
+      } catch (e) {
+        console.error("loadSavedItems error", e);
+        return [];
+      }
+    }
+
+    function saveItemsToStorage(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    /**********************************************
+     * ④ 共通関数
      **********************************************/
     function toNumber(value) {
       const n = parseFloat(value);
@@ -357,7 +443,7 @@
     }
 
     /**********************************************
-     * ④ 結果計算・表示
+     * ⑤ 利益計算・表示
      **********************************************/
     function calculate() {
       const price = toNumber(document.getElementById("price").value);
@@ -382,7 +468,8 @@
         const profit = price - feeAmount - totalCost;
         const margin = (profit / price) * 100;
 
-        const profitClass = profit < 0 ? "profit-value profit-negative" : "profit-value";
+        const profitClass =
+          profit < 0 ? "profit-value profit-negative" : "profit-value";
 
         html += `
           <div class="market-card">
@@ -442,7 +529,128 @@
     }
 
     /**********************************************
-     * ⑤ 初期化（プルダウンに発送方法を入れる）
+     * ⑥ 保存機能（現在の内容を保存）
+     **********************************************/
+    function handleSave() {
+      const name = document.getElementById("itemName").value.trim();
+      const price = toNumber(document.getElementById("price").value);
+      const cost = toNumber(document.getElementById("cost").value);
+      const other = toNumber(document.getElementById("other").value);
+      const shippingMethod = getSelectedShippingMethod();
+
+      if (!name) {
+        alert("商品名を入力してください。");
+        return;
+      }
+      if (price <= 0) {
+        alert("販売価格を入力してください。");
+        return;
+      }
+      if (!shippingMethod) {
+        alert("発送方法を選択してください。");
+        return;
+      }
+
+      const items = loadSavedItems();
+      const now = new Date().toISOString();
+
+      // 同じ商品名があれば上書き
+      const existingIndex = items.findIndex((item) => item.name === name);
+
+      const data = {
+        name,
+        price,
+        cost,
+        other,
+        shippingMethodId: shippingMethod.id,
+        updatedAt: now,
+      };
+
+      if (existingIndex >= 0) {
+        items[existingIndex] = data;
+      } else {
+        items.push(data);
+      }
+
+      saveItemsToStorage(items);
+      renderSavedItemsSelect();
+      alert("保存しました。");
+    }
+
+    /**********************************************
+     * ⑦ 保存済みデータの表示・読み込み・削除
+     **********************************************/
+    function renderSavedItemsSelect() {
+      const select = document.getElementById("savedItemsSelect");
+      const items = loadSavedItems();
+
+      // 一旦クリア
+      select.innerHTML = "";
+      const emptyOpt = document.createElement("option");
+      emptyOpt.value = "";
+      emptyOpt.textContent = "（未選択）";
+      select.appendChild(emptyOpt);
+
+      items.forEach((item, index) => {
+        const opt = document.createElement("option");
+        opt.value = String(index);
+        opt.textContent = item.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function handleLoad() {
+      const select = document.getElementById("savedItemsSelect");
+      const index = parseInt(select.value, 10);
+      const items = loadSavedItems();
+
+      if (isNaN(index) || index < 0 || index >= items.length) {
+        alert("読み込む商品を選択してください。");
+        return;
+      }
+
+      const item = items[index];
+
+      document.getElementById("itemName").value = item.name;
+      document.getElementById("price").value = item.price;
+      document.getElementById("cost").value = item.cost;
+      document.getElementById("other").value = item.other;
+
+      // 発送方法
+      const shippingSelect = document.getElementById("shippingMethod");
+      shippingSelect.value = item.shippingMethodId;
+      if (!shippingSelect.value) {
+        // 保存時と現在の定義が変わっていて見つからない場合
+        shippingSelect.value = SHIPPING_METHODS[0]?.id || "";
+      }
+
+      updateShippingSummary();
+      calculate();
+    }
+
+    function handleDelete() {
+      const select = document.getElementById("savedItemsSelect");
+      const index = parseInt(select.value, 10);
+      const items = loadSavedItems();
+
+      if (isNaN(index) || index < 0 || index >= items.length) {
+        alert("削除する商品を選択してください。");
+        return;
+      }
+
+      const name = items[index].name;
+      if (!confirm(`「${name}」を削除しますか？`)) {
+        return;
+      }
+
+      items.splice(index, 1);
+      saveItemsToStorage(items);
+      renderSavedItemsSelect();
+      alert("削除しました。");
+    }
+
+    /**********************************************
+     * ⑧ 初期化
      **********************************************/
     function init() {
       const shippingSelect = document.getElementById("shippingMethod");
@@ -454,19 +662,30 @@
         shippingSelect.appendChild(opt);
       });
 
-      // デフォルトで先頭を選択
       if (SHIPPING_METHODS.length > 0) {
         shippingSelect.value = SHIPPING_METHODS[0].id;
       }
 
+      renderSavedItemsSelect();
       updateShippingSummary();
       calculate();
     }
 
+    // イベント設定
     document.getElementById("calcBtn").addEventListener("click", calculate);
-    ["price", "cost", "other"].forEach((id) => {
-      document.getElementById(id).addEventListener("input", calculate);
+    document.getElementById("saveBtn").addEventListener("click", handleSave);
+    document.getElementById("loadBtn").addEventListener("click", handleLoad);
+    document.getElementById("deleteBtn").addEventListener("click", handleDelete);
+
+    ["price", "cost", "other", "itemName"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", () => {
+        // 数値変更時は即計算
+        if (id !== "itemName") {
+          calculate();
+        }
+      });
     });
+
     document
       .getElementById("shippingMethod")
       .addEventListener("change", () => {
