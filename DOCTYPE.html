@@ -19,6 +19,16 @@
       justify-content: center;
     }
 
+    body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;   /* 横スクロールを禁止 */
+    }
+
+    body {
+      overscroll-behavior-x: none;  /* 横方向のゴムみたいな動き防止（対応ブラウザ） */
+    }
+
     .card {
       background: #ffffff;
       width: 100%;
@@ -696,5 +706,6 @@
   </script>
 </body>
 </html>
+
 
 
