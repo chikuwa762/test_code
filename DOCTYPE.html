@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>メルカリ利益計算ツール</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #f4f4f5;
+      display: flex;
+      justify-content: center;
+    }
+
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 480px;
+      padding: 20px 18px 24px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    h1 {
+      font-size: 1.3rem;
+      margin: 0 0 4px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: #6b7280;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #d4d4d8;
+      font-size: 0.9rem;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .suffix {
+      font-size: 0.85rem;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 3px 7px rgba(37, 99, 235, 0.35);
+      opacity: 0.9;
+    }
+
+    .results {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px dashed #e5e7eb;
+      font-size: 0.9rem;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .result-label {
+      color: #6b7280;
+    }
+
+    .result-value {
+      font-weight: 600;
+    }
+
+    .result-main {
+      font-size: 1.1rem;
+      margin-top: 6px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #eff6ff;
+    }
+
+    .result-main .result-value {
+      color: #1d4ed8;
+      font-size: 1.1rem;
+    }
+
+    .footer-note {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-align: right;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #020617;
+      }
+      .card {
+        background: #020617;
+        color: #e5e7eb;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+      input[type="number"] {
+        background: #020617;
+        color: #e5e7eb;
+        border-color: #4b5563;
+      }
+      .subtitle,
+      .result-label,
+      .suffix,
+      .footer-note {
+        color: #9ca3af;
+      }
+      .results {
+        border-top-color: #374151;
+      }
+      .result-main {
+        background: #1d4ed8;
+      }
+      .result-main .result-value {
+        color: #f9fafb;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>メルカリ利益計算</h1>
+    <div class="subtitle">販売価格・送料などを入れるだけ</div>
+
+    <div class="field">
+      <label for="price">販売価格</label>
+      <div class="field-row">
+        <input type="number" id="price" inputmode="decimal" placeholder="例: 3000">
+        <span class="suffix">円</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="cost">仕入れ値 / 原価</label>
+      <div class="field-row">
+        <input type="number" id="cost" inputmode="decimal" placeholder="例: 1500">
+        <span class="suffix">円</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="shipping">送料（自分負担分）</label>
+      <div class="field-row">
+        <input type="number" id="shipping" inputmode="decimal" placeholder="例: 450">
+        <span class="suffix">円</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="other">その他経費（梱包材など）</label>
+      <div class="field-row">
+        <input type="number" id="other" inputmode="decimal" placeholder="例: 100">
+        <span class="suffix">円</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="feeRate">販売手数料</label>
+      <div class="field-row">
+        <input type="number" id="feeRate" inputmode="decimal" value="10">
+        <span class="suffix">%</span>
+      </div>
+    </div>
+
+    <button id="calcBtn">利益を計算する</button>
+
+    <div class="results">
+      <div class="result-row result-main">
+        <span class="result-label">利益</span>
+        <span class="result-value" id="profitText">- 円</span>
+      </div>
+
+      <div class="result-row">
+        <span class="result-label">売上からの手数料</span>
+        <span class="result-value" id="feeAmountText">- 円</span>
+      </div>
+
+      <div class="result-row">
+        <span class="result-label">振込前の受取額（売上−手数料）</span>
+        <span class="result-value" id="netSalesText">- 円</span>
+      </div>
+
+      <div class="result-row">
+        <span class="result-label">利益率（利益 ÷ 売上）</span>
+        <span class="result-value" id="marginText">- %</span>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ※手数料率はアプリの仕様に合わせて変更してください
+    </div>
+  </div>
+
+  <script>
+    function toNumber(value) {
+      const n = parseFloat(value);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function formatYen(n) {
+      return Math.round(n).toLocaleString("ja-JP");
+    }
+
+    function formatPercent(n) {
+      return n.toFixed(1);
+    }
+
+    function calculate() {
+      const price = toNumber(document.getElementById("price").value);
+      const cost = toNumber(document.getElementById("cost").value);
+      const shipping = toNumber(document.getElementById("shipping").value);
+      const other = toNumber(document.getElementById("other").value);
+      const feeRate = toNumber(document.getElementById("feeRate").value);
+
+      if (price <= 0) {
+        document.getElementById("profitText").textContent = "- 円";
+        document.getElementById("feeAmountText").textContent = "- 円";
+        document.getElementById("netSalesText").textContent = "- 円";
+        document.getElementById("marginText").textContent = "- %";
+        return;
+      }
+
+      const feeAmount = price * (feeRate / 100);
+      const netSales = price - feeAmount; // 手数料を引いた売上
+      const profit = netSales - cost - shipping - other;
+      const margin = (profit / price) * 100;
+
+      document.getElementById("feeAmountText").textContent =
+        formatYen(feeAmount) + " 円";
+      document.getElementById("netSalesText").textContent =
+        formatYen(netSales) + " 円";
+      document.getElementById("profitText").textContent =
+        formatYen(profit) + " 円";
+      document.getElementById("marginText").textContent =
+        formatPercent(margin) + " %";
+    }
+
+    document.getElementById("calcBtn").addEventListener("click", calculate);
+
+    // 入力を変えたら自動で再計算（好きなら消してOK）
+    ["price", "cost", "shipping", "other", "feeRate"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => {
+        calculate();
+      });
+    });
+  </script>
+</body>
+</html>
