@@ -97,6 +97,7 @@
       display: flex;
       gap: 8px;
       margin-top: 8px;
+      flex-wrap: wrap;
     }
 
     button {
@@ -157,17 +158,20 @@
       justify-content: space-between;
       align-items: baseline;
       margin-bottom: 4px;
+      gap: 8px;
     }
 
     .market-name {
       font-weight: 700;
       font-size: 0.95rem;
+      white-space: nowrap;
     }
 
     .profit-value {
       font-weight: 700;
       font-size: 1rem;
       color: #1d4ed8;
+      text-align: right;
     }
 
     .profit-negative {
@@ -182,10 +186,12 @@
       display: flex;
       justify-content: space-between;
       margin-bottom: 2px;
+      gap: 10px;
     }
 
     .label {
       color: #6b7280;
+      white-space: nowrap;
     }
 
     .saved-block {
@@ -204,10 +210,12 @@
       display: flex;
       gap: 6px;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     .saved-row select {
       flex: 1;
+      min-width: 200px;
     }
 
     .saved-row button {
@@ -272,22 +280,22 @@
     <!-- ▼▼▼ 入力欄 ▼▼▼ -->
     <div class="field">
       <label for="itemName">商品名</label>
-      <input
-        type="text"
-        id="itemName"
-        placeholder="例: Tシャツ 白 Lサイズ"
-      />
+      <input type="text" id="itemName" placeholder="例: Tシャツ 白 Lサイズ" />
     </div>
 
     <div class="field">
       <label for="price">販売価格</label>
       <div class="field-row">
-        <input
-          type="number"
-          id="price"
-          inputmode="decimal"
-          placeholder="例: 3000"
-        />
+        <input type="number" id="price" inputmode="decimal" placeholder="例: 3000" />
+        <span class="suffix">円</span>
+      </div>
+    </div>
+
+    <!-- ★追加：目標利益 -->
+    <div class="field">
+      <label for="targetProfit">目標利益（逆算用）</label>
+      <div class="field-row">
+        <input type="number" id="targetProfit" inputmode="decimal" placeholder="例: 500" />
         <span class="suffix">円</span>
       </div>
     </div>
@@ -295,12 +303,7 @@
     <div class="field">
       <label for="cost">仕入れ値 / 原価</label>
       <div class="field-row">
-        <input
-          type="number"
-          id="cost"
-          inputmode="decimal"
-          placeholder="例: 1500"
-        />
+        <input type="number" id="cost" inputmode="decimal" placeholder="例: 1500" />
         <span class="suffix">円</span>
       </div>
     </div>
@@ -308,12 +311,7 @@
     <div class="field">
       <label for="other">その他経費（梱包材など）</label>
       <div class="field-row">
-        <input
-          type="number"
-          id="other"
-          inputmode="decimal"
-          placeholder="例: 100"
-        />
+        <input type="number" id="other" inputmode="decimal" placeholder="例: 100" />
         <span class="suffix">円</span>
       </div>
     </div>
@@ -325,6 +323,8 @@
 
     <div class="btn-row">
       <button id="calcBtn">利益を計算</button>
+      <!-- ★追加：販売価格を計算 -->
+      <button id="priceCalcBtn" class="secondary">販売価格を計算</button>
       <button id="saveBtn" class="secondary">現在の内容を保存</button>
     </div>
 
@@ -333,7 +333,6 @@
       <div class="shipping-summary" id="shippingSummary">
         発送方法とサイト別送料をここに表示します。
       </div>
-
       <div class="market-list" id="marketResults"></div>
     </div>
 
@@ -359,145 +358,29 @@
      * ① サイト別の設定（手数料データベース）
      **********************************************/
     const MARKETPLACES = {
-      mercari: {
-        key: "mercari",
-        label: "メルカリ",
-        feeRate: 10.0, // 例: 10%
-      },
-      yahoo: {
-        key: "yahoo",
-        label: "ヤフオク! ",
-        feeRate: 5.0, // 例: 10%
-      },
-      rakuma: {
-        key: "rakuma",
-        label: "ラクマ",
-        feeRate: 10.0, // 例: 6%
-      },
+      mercari: { key: "mercari", label: "メルカリ", feeRate: 10.0 },
+      yahoo:   { key: "yahoo",   label: "ヤフオク! ", feeRate: 5.0  },
+      rakuma:  { key: "rakuma",  label: "ラクマ",     feeRate: 10.0 },
     };
 
     /**********************************************
      * ② 発送方法データベース
      **********************************************/
     const SHIPPING_METHODS = [
-      {
-        id: "yp_post_mini",
-        label: "ゆうパケットポスト mini",
-        cost: {
-          mercari: 180,
-          yahoo: 180,
-          rakuma: 170,
-        },
-      },
-      {
-        id: "yp_post",
-        label: "ゆうパケットポスト",
-        cost: {
-          mercari: 220,
-          yahoo: 215,
-          rakuma: 180,
-        },
-      },
-      {
-        id: "yp_post_plus",
-        label: "ゆうパケット プラス",
-        cost: {
-          mercari: 520,
-          yahoo: 475,
-          rakuma: 445,
-        },
-      },
-      {
-        id: "kn_npost",
-        label: "ネコポス",
-        cost: {
-          mercari: 210,
-          yahoo: 210,
-          rakuma: 200,
-        },
-      },
-       {
-        id: "kn_conpact",
-        label: "宅急便コンパクト",
-        cost: {
-          mercari: 450,
-          yahoo: 560,
-          rakuma: 500,
-        },
-      },
-       {
-        id: "yp_yp",
-        label: "60ゆうパック",
-        cost: {
-          mercari: 750,
-          yahoo: 750,
-          rakuma: 700, 
-        },
-      },
-       {
-        id: "yp_yp8",
-        label: "80ゆうパック",
-        cost: {
-          mercari: 850,
-          yahoo: 850,
-          rakuma: 800,
-        },
-      },
-       {
-        id: "yp_yp10",
-        label: "100ゆうパック",
-        cost: {
-          mercari: 1050,
-          yahoo: 1050,
-          rakuma: 1150,
-        },
-      },
-       {
-        id: "yp_yp12",
-        label: "120ゆうパック",
-        cost: {
-          mercari: 1200,
-          yahoo: 1200,
-          rakuma: 1350,
-        },
-      },
-       {
-        id: "kn_tk",
-        label: "60宅急便",
-        cost: {
-          mercari: 750,
-          yahoo: 750,
-          rakuma: 650,
-        },
-      },
-       {
-        id: "kn_tk8",
-        label: "80宅急便",
-        cost: {
-          mercari: 850,
-          yahoo: 850,
-          rakuma: 750,
-        },
-      },
-       {
-        id: "kn_tk10",
-        label: "100宅急便",
-        cost: {
-          mercari: 1050,
-          yahoo: 1050,
-          rakuma: 1050,
-        },
-      },
-       {
-        id: "kn_tk12",
-        label: "120宅急便",
-        cost: {
-          mercari: 1200,
-          yahoo: 1200,
-          rakuma: 1200,
-        },
-      },
-          // ここに追加してOK// ここに追加してOK
+      { id: "yp_post_mini", label: "ゆうパケットポスト mini", cost: { mercari: 180, yahoo: 180, rakuma: 170 } },
+      { id: "yp_post",      label: "ゆうパケットポスト",      cost: { mercari: 220, yahoo: 215, rakuma: 180 } },
+      { id: "yp_post_plus", label: "ゆうパケット プラス",      cost: { mercari: 520, yahoo: 475, rakuma: 445 } },
+      { id: "kn_npost",     label: "ネコポス",                  cost: { mercari: 210, yahoo: 210, rakuma: 200 } },
+      { id: "kn_conpact",   label: "宅急便コンパクト",          cost: { mercari: 450, yahoo: 560, rakuma: 500 } },
+      { id: "yp_yp",        label: "60ゆうパック",              cost: { mercari: 750, yahoo: 750, rakuma: 700 } },
+      { id: "yp_yp8",       label: "80ゆうパック",              cost: { mercari: 850, yahoo: 850, rakuma: 800 } },
+      { id: "yp_yp10",      label: "100ゆうパック",             cost: { mercari: 1050, yahoo: 1050, rakuma: 1150 } },
+      { id: "yp_yp12",      label: "120ゆうパック",             cost: { mercari: 1200, yahoo: 1200, rakuma: 1350 } },
+      { id: "kn_tk",        label: "60宅急便",                  cost: { mercari: 750, yahoo: 750, rakuma: 650 } },
+      { id: "kn_tk8",       label: "80宅急便",                  cost: { mercari: 850, yahoo: 850, rakuma: 750 } },
+      { id: "kn_tk10",      label: "100宅急便",                 cost: { mercari: 1050, yahoo: 1050, rakuma: 1050 } },
+      { id: "kn_tk12",      label: "120宅急便",                 cost: { mercari: 1200, yahoo: 1200, rakuma: 1200 } },
+      // ここに追加してOK
     ];
 
     /**********************************************
@@ -544,7 +427,7 @@
     }
 
     /**********************************************
-     * ⑤ 利益計算・表示
+     * ⑤ 利益計算（販売価格→利益）
      **********************************************/
     function calculate() {
       const price = toNumber(document.getElementById("price").value);
@@ -557,6 +440,7 @@
       if (price <= 0 || !shippingMethod) {
         marketResultsEl.innerHTML =
           '<div style="font-size:0.8rem;color:#9ca3af;">販売価格と発送方法を入力してください。</div>';
+        updateShippingSummary();
         return;
       }
 
@@ -586,9 +470,7 @@
                 <span>${formatYen(price)} 円</span>
               </div>
               <div class="row">
-                <span class="label">販売手数料（${formatPercent(
-                  market.feeRate
-                )}%）</span>
+                <span class="label">販売手数料（${formatPercent(market.feeRate)}%）</span>
                 <span>${formatYen(feeAmount)} 円</span>
               </div>
               <div class="row">
@@ -612,6 +494,125 @@
       updateShippingSummary();
     }
 
+    /**********************************************
+     * ⑥ 販売価格の逆算（目標利益→必要販売価格）
+     *
+     * 利益 = 価格 - 手数料 - (原価+その他+送料)
+     * 手数料 = 価格 * r
+     * => 利益 = 価格*(1-r) - 固定費
+     * => 価格 = (利益 + 固定費) / (1-r)
+     **********************************************/
+    function calculatePriceFromProfit() {
+      const targetProfit = toNumber(document.getElementById("targetProfit").value);
+      const cost = toNumber(document.getElementById("cost").value);
+      const other = toNumber(document.getElementById("other").value);
+      const shippingMethod = getSelectedShippingMethod();
+
+      const marketResultsEl = document.getElementById("marketResults");
+
+      if (!shippingMethod) {
+        marketResultsEl.innerHTML =
+          '<div style="font-size:0.8rem;color:#9ca3af;">発送方法を選択してください。</div>';
+        updateShippingSummary();
+        return;
+      }
+
+      if (targetProfit === 0) {
+        marketResultsEl.innerHTML =
+          '<div style="font-size:0.8rem;color:#9ca3af;">目標利益（逆算用）を入力してください。（例: 500）</div>';
+        updateShippingSummary();
+        return;
+      }
+
+      let html = "";
+
+      Object.values(MARKETPLACES).forEach((market) => {
+        const r = market.feeRate / 100;
+        const shippingCost = shippingMethod.cost[market.key] ?? 0;
+        const fixedCost = cost + other + shippingCost;
+
+        const denom = 1 - r;
+        // あり得ないが、念のため
+        if (denom <= 0) {
+          html += `
+            <div class="market-card">
+              <div class="market-header">
+                <div class="market-name">${market.label}</div>
+                <div class="profit-value profit-negative">計算不可</div>
+              </div>
+              <div class="market-rows">
+                <div class="row"><span class="label">理由</span><span>手数料率が高すぎます</span></div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        // 逆算販売価格（円）
+        const requiredPrice = (targetProfit + fixedCost) / denom;
+
+        // 表示用（切り上げ推奨：目標利益を割り込まないように）
+        const displayPrice = Math.ceil(requiredPrice);
+
+        // 参考：その価格のときの利益（丸め誤差確認用）
+        const feeAmount = displayPrice * r;
+        const profitCheck = displayPrice - feeAmount - fixedCost;
+
+        const profitClass =
+          profitCheck < 0 ? "profit-value profit-negative" : "profit-value";
+
+        html += `
+          <div class="market-card">
+            <div class="market-header">
+              <div class="market-name">${market.label}</div>
+              <div class="profit-value">
+                必要価格：${formatYen(displayPrice)} 円
+              </div>
+            </div>
+            <div class="market-rows">
+              <div class="row">
+                <span class="label">目標利益</span>
+                <span>${formatYen(targetProfit)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">販売手数料（${formatPercent(market.feeRate)}%）</span>
+                <span>約 ${formatYen(displayPrice * r)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">送料（${shippingMethod.label}）</span>
+                <span>${formatYen(shippingCost)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">原価＋その他経費</span>
+                <span>${formatYen(cost + other)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">この価格の利益（参考）</span>
+                <span class="${profitClass}">${formatYen(profitCheck)} 円</span>
+              </div>
+              <div class="row">
+                <span class="label">ワンタップ反映</span>
+                <span>
+                  <button class="secondary" style="padding:6px 10px;border-radius:999px;"
+                    onclick="setPriceAndCalc(${displayPrice})">この価格を販売価格へ</button>
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      marketResultsEl.innerHTML = html;
+      updateShippingSummary();
+    }
+
+    // 逆算した価格を入力欄へ入れて、通常の利益計算を回す
+    function setPriceAndCalc(price) {
+      document.getElementById("price").value = price;
+      calculate();
+      // 逆算モードの結果が消えるので、必要なら targetProfit は残したまま
+    }
+
     function updateShippingSummary() {
       const shippingMethod = getSelectedShippingMethod();
       const el = document.getElementById("shippingSummary");
@@ -630,13 +631,14 @@
     }
 
     /**********************************************
-     * ⑥ 保存機能（現在の内容を保存）
+     * ⑦ 保存機能（現在の内容を保存）
      **********************************************/
     function handleSave() {
       const name = document.getElementById("itemName").value.trim();
       const price = toNumber(document.getElementById("price").value);
       const cost = toNumber(document.getElementById("cost").value);
       const other = toNumber(document.getElementById("other").value);
+      const targetProfit = toNumber(document.getElementById("targetProfit").value);
       const shippingMethod = getSelectedShippingMethod();
 
       if (!name) {
@@ -655,7 +657,6 @@
       const items = loadSavedItems();
       const now = new Date().toISOString();
 
-      // 同じ商品名があれば上書き
       const existingIndex = items.findIndex((item) => item.name === name);
 
       const data = {
@@ -663,6 +664,7 @@
         price,
         cost,
         other,
+        targetProfit,          // ★保存対象に追加
         shippingMethodId: shippingMethod.id,
         updatedAt: now,
       };
@@ -679,13 +681,12 @@
     }
 
     /**********************************************
-     * ⑦ 保存済みデータの表示・読み込み・削除
+     * ⑧ 保存済みデータの表示・読み込み・削除
      **********************************************/
     function renderSavedItemsSelect() {
       const select = document.getElementById("savedItemsSelect");
       const items = loadSavedItems();
 
-      // 一旦クリア
       select.innerHTML = "";
       const emptyOpt = document.createElement("option");
       emptyOpt.value = "";
@@ -716,12 +717,11 @@
       document.getElementById("price").value = item.price;
       document.getElementById("cost").value = item.cost;
       document.getElementById("other").value = item.other;
+      document.getElementById("targetProfit").value = item.targetProfit ?? ""; // ★読み込み追加
 
-      // 発送方法
       const shippingSelect = document.getElementById("shippingMethod");
       shippingSelect.value = item.shippingMethodId;
       if (!shippingSelect.value) {
-        // 保存時と現在の定義が変わっていて見つからない場合
         shippingSelect.value = SHIPPING_METHODS[0]?.id || "";
       }
 
@@ -740,9 +740,7 @@
       }
 
       const name = items[index].name;
-      if (!confirm(`「${name}」を削除しますか？`)) {
-        return;
-      }
+      if (!confirm(`「${name}」を削除しますか？`)) return;
 
       items.splice(index, 1);
       saveItemsToStorage(items);
@@ -751,7 +749,7 @@
     }
 
     /**********************************************
-     * ⑧ 初期化
+     * ⑨ 初期化
      **********************************************/
     function init() {
       const shippingSelect = document.getElementById("shippingMethod");
@@ -774,40 +772,26 @@
 
     // イベント設定
     document.getElementById("calcBtn").addEventListener("click", calculate);
+    document.getElementById("priceCalcBtn").addEventListener("click", calculatePriceFromProfit);
     document.getElementById("saveBtn").addEventListener("click", handleSave);
     document.getElementById("loadBtn").addEventListener("click", handleLoad);
     document.getElementById("deleteBtn").addEventListener("click", handleDelete);
 
-    ["price", "cost", "other", "itemName"].forEach((id) => {
+    ["price", "cost", "other", "targetProfit", "itemName"].forEach((id) => {
       document.getElementById(id).addEventListener("input", () => {
-        // 数値変更時は即計算
-        if (id !== "itemName") {
+        // 価格側を触っているなら利益計算を即更新
+        if (id === "price" || id === "cost" || id === "other") {
           calculate();
         }
       });
     });
 
-    document
-      .getElementById("shippingMethod")
-      .addEventListener("change", () => {
-        updateShippingSummary();
-        calculate();
-      });
+    document.getElementById("shippingMethod").addEventListener("change", () => {
+      updateShippingSummary();
+      calculate();
+    });
 
     init();
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
